@@ -146,72 +146,239 @@ let deleted_Amis=[]
     
          ```
 
-         //Get all instances and collect the Image Ids with the current state: //running pending stopped etc
-                  command = new DescribeInstancesCommand({})
+            command = new DescribeInstancesCommand({ // DescribeInstancesRequest
+                 Filters: [ // FilterList
+                   { // Filter
+                     Name: "instance-state-name",
+                     Values: [ // ValueStringList
+                       "running",
+                     ],
+                   },
+                 ],
+                 // DryRun: true || false,
+                 // MaxResults: Number("int"),
+                 // NextToken: "STRING_VALUE",
+               })
+                    
+                    
+                   data =await client.send(command)
+                   
+               
+                    
+                   
+                    
+                   for(let info of data.Reservations){
+                     let instance= info.Instances
+                     
+                     for(let i=0;i<instance.length;i++){
+                       
+                       //return instance[i].ImageId
+                       
+                       running_Images[instance[i].ImageId]=i //use map here and move forward
+                     }
+                     
+                     
+                   }
+                   
+                   //return running_Images
                    
                    
-                  data =await client.send(command)
                    
-                  
                    
-                  for(let info of data.Reservations){
-                    let instance= info.Instances
-                    
-                    for(let i=0;i<instance.length;i++){
-                      Image_ids.push([instance[i].ImageId,instance[i].State.Name])
-                    }
-                    
-                    
-                  }
-
-
-
-              // if the image ID IS 
-                  
-                  
-                  
-                  
-                  
-                    for (let image_Id of Image_ids){
-                      if(ami_info.get(image_Id[0])=== undefined) continue
+                   command =new DescribeImagesCommand({
+                     Owners:[""]
+                   })
+                   
+                   data = await client.send(command)
+                   
+                   let images= data.Images
+                   
+                   images.forEach((imageInfo,index)=>{
+                     Image_ids.push([imageInfo.ImageId,imageInfo.CreationDate])
+                   })
+                   
+                   //return Image_ids
+                   
+                   
+                   
+                   
+                   
+                     for (let image_Id of Image_ids){
+                       
+                       
+                       if(running_Images[image_Id[0]]) continue;
+                       
+                       
+                       
+                       
+                       let image_date= image_Id[1].toString();
+                       let date_now = new Date();
+                       let now_utc = new Date(date_now.getTime() - date_now.getTimezoneOffset() * 60000).toISOString()
+                       
+                       
+                       console.log(image_date,now_utc)
+                       
+                       
+                       
+                       
+                       
+                       
+                       
+                       
+                       
+                       let date1=dateConversion(image_date);
+                       
+                       
+                       let date2= dateConversion(now_utc);
+                       
+                       let d1=new Date(date1);
+                       let d2=new Date(date2);
+                       
+                       
+                       console.log(d1,d2)
+                       
                       
-                      
-                      
-                      
-                      
-                      
-                      
-                      
-                    
-                    let date_Created = new Date(ami_info.get(image_Id[0]))
-                    let date_now = new Date(currentDate)
-                    const diffTime = Math.abs(date_Created - date_now);
-                    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-                    
-                    
-                    if (diffDays>30 && (image_Id[1]!=="running") ){
-                      
-                      
-                      
-                      const command = new DeregisterImageCommand({ImageId:image_Id[0]});
-                      
-                      try{
-                        const response = await client.send(command);
-                        deleted_Amis.push(image_Id[0])
-                        
-                      }
-                      catch(error){
-                        throw Error(error)
-                      }
-                      
-                      
-                      
-                    }
-                    
-                  }
+                       
+                       
+                       
+                       let diffDays = Math.abs(d2.getTime()-d1.getTime());
+                       
+                       
+                       
+                     
+                     
+                     if (diffDays>30){
+                       
+                       
+                       
+                       const command = new DeregisterImageCommand({ImageId:image_Id[0]});
+                       
+                       try{
+                         const response = await client.send(command);
+                         deleted_Amis.push(image_Id[0])
+                         
+                       }
+                       catch(error){
+                         throw Error(error)
+                       }
+                       
+                       
+                       
+                     }
+                     
+                   }
 
          
          ```
+
+
+   5) Create an SNS Topic to get a notification and subscription
+      ![Screen Shot 2023-09-25 at 10 19 59 PM](https://github.com/leoimewore/AWS-AMI-BACKUP/assets/95531716/05cbd9fd-06cf-47e1-a4b0-2fef3e2ae7fe)
+
+
+   6)Go to Cloudwatch and log groups 
+      ![Screen Shot 2023-09-25 at 10 39 22 PM](https://github.com/leoimewore/AWS-AMI-BACKUP/assets/95531716/20fd2740-74b7-47f8-8125-870c7a439e12)
+
+   7) Click on Create Metric Filter
+      ```
+      Filter Pattern: ERROR
+      Filter Name: BACKUP-AMI-NOTIFICATION-ERROR
+      Metric namespace: error-notification-namespace
+      Metric name: error-notification
+      Metric value:error-notification
+      ```
+      ![image](https://github.com/leoimewore/AWS-AMI-BACKUP/assets/95531716/a39a51c8-4e3e-41b4-8b6a-79a5bdc50b62)
+
+
+ 8) Check box the metric filter created and create a Cloud watch alarm
+    Create an alarm where when a threshold of 1 error is met a notification is sent by the SNS.
+
+    ![image](https://github.com/leoimewore/AWS-AMI-BACKUP/assets/95531716/d4e6ef17-cc5a-46a0-ad34-d425e01b5688)
+
+    ![image](https://github.com/leoimewore/AWS-AMI-BACKUP/assets/95531716/09e007c1-6ccb-4363-b507-69a555542123)
+
+    ![image](https://github.com/leoimewore/AWS-AMI-BACKUP/assets/95531716/98c7254a-56bf-47d2-8ae9-b0bc2141edce)
+
+
+
+9) Finally we need to create and AmazonEventbridge schedules to trigger the backup lambda function every 7days
+
+    ![image](https://github.com/leoimewore/AWS-AMI-BACKUP/assets/95531716/f614ab69-0935-4bcf-b4ea-cae17f11f730)
+
+   Ensure to use a recurring schedule and Rate based schedule
+
+   rate(7 days)
+
+   Select start time and end time and dates
+   ![image](https://github.com/leoimewore/AWS-AMI-BACKUP/assets/95531716/8be2de7e-b523-4748-976e-163b09c436fc)
+
+   ![image](https://github.com/leoimewore/AWS-AMI-BACKUP/assets/95531716/45e98f0e-b946-4c80-adb1-3bec2c087cab)
+
+   ![image](https://github.com/leoimewore/AWS-AMI-BACKUP/assets/95531716/7163d680-c221-459c-921c-44095c701a2d)
+   ![image](https://github.com/leoimewore/AWS-AMI-BACKUP/assets/95531716/d99702ea-cdea-4e50-b78f-60ce150624f1)
+
+   Add the pay load and the lambda function
+
+   ![image](https://github.com/leoimewore/AWS-AMI-BACKUP/assets/95531716/5692aeba-8f43-45a7-af26-bf0e3bc7c31f)
+
+
+   Create and this is the end of the project. 
+
+
+
+
+
+
+
+
+    
+
+
+
+
+         
+
+
+
+         
+
+
+
+         
+
+
+             
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+         
 
 
 
