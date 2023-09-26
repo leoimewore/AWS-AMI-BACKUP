@@ -217,7 +217,7 @@ export const handler = async (event,_,callback) => {
     
     
     command =new DescribeImagesCommand({
-      Owners:["691490196261"]
+      Owners:["AWS_ID"]
     })
     
     data = await client.send(command)
