@@ -10,6 +10,10 @@ This is a personal project complete a challenge on : https://devopsrealtime.com/
 - Challenge request for Python, but i used Javascript for this problem.
 
 
+
+image.png
+
+
 ## Steps:
 1) Break down Nodejs/ Javascript code for both creation and deregistering of AMIs
 2) Create Lambda Function
