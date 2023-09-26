@@ -8,10 +8,12 @@ This is a personal project complete a challenge on : https://devopsrealtime.com/
 - Create an AWS Lambda function that backs-ups Amazon Machine Images of EC2 INSTANCES
 - Deletes or Deregister AMIs that are not in use for over 30 days.
 - Challenge request for Python, but i used Javascript for this problem.
+- Make use of AWS Javascript SDK to implement the AWS Lambda function
 
 
 
-image.png
+<img width="651" alt="image" src="https://github.com/leoimewore/AWS-AMI-BACKUP/assets/95531716/2a4f67dd-7595-46f5-b2a7-ef4b1b0ab43e">
+
 
 
 ## Steps:
